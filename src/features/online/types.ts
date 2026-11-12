@@ -1,0 +1,8 @@
+﻿export const orderLabels:Record<string,string>={CREATED:'Đang khởi tạo',PENDING:'Chưa hoàn tất',SUCCEEDED:'Đã ghi nhận phiếu thu',FAILED:'Không thành công',EXPIRED:'Hết hạn',REVIEW_REQUIRED:'Cần đối soát'};
+export type Order={id:string;tuitionId:number;state:string;amount:string;currency:string;provider:string;environment:'SANDBOX'|'PROTOCOL_TEST';createdAt:string;expiresAt:string;receiptId:number|null;message:string;reviewRequired:boolean;version:number;checkoutUrl:string|null;displayCode?:string;className?:string|null;courseName?:string|null};
+export type Settings={enabled:boolean;provider:string;environment:'SANDBOX'|'PROTOCOL_TEST';message:string;checkoutOrigin:string|null};
+export function parseAmount(text:string):string|null{const n=text.trim().replace(',','.');if(!/^\d{1,10}(\.\d{1,2})?$/.test(n))return null;const [whole,fraction='']=n.split('.');const amount=(whole.replace(/^0+/,'')||'0')+'.'+fraction.padEnd(2,'0');return /^0\.00$/.test(amount)?null:amount;}
+export function withinBalance(amount:string,balance:string){const a=amount.replace('.','').replace(/^0+/,'')||'0',b=balance.replace('.','').replace(/^0+/,'')||'0';return a.length<b.length||a.length===b.length&&a<=b;}
+export function trustedCheckout(url:string){try{const u=new URL(url);return !u.username&&!u.password&&!u.hash&&url.length<=8192&&/^[a-f0-9]{128}$/i.test(u.searchParams.get('vnp_SecureHash')??'')&&u.protocol==='https:'&&u.hostname==='sandbox.vnpayment.vn'&&u.port===''&&u.pathname==='/paymentv2/vpcpay.html';}catch{return false;}}
+
+export type PaymentContext={tuitionId:number;action:'PAY'|'RESUME'|'SUPPORT'|'NONE'|'UNAVAILABLE';reason:string|null;message:string;outstanding:string|null;currency:string;order:Order|null;sandbox:boolean};

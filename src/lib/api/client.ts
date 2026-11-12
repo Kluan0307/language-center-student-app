@@ -1,4 +1,3 @@
-import { apiBaseUrl } from "../../config/env";
 export type ApiErrorKind =
   | "configuration"
   | "network"
@@ -13,12 +12,15 @@ export class ApiError extends Error {
     public status?: number,
     public code?: string,
     public requestId?: string,
+    public requestRejected = false,
+    public orderId?: string,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 type Options = {
+  responseType?: "bytes";
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
@@ -76,6 +78,13 @@ export function createApiClient(deps: Dependencies) {
         redirect: "error",
       });
       if (response.status === 401 && token) deps.onUnauthorized(token);
+      if(response.ok && options.responseType === "bytes") {
+        const limit=10*1024*1024;
+        if(Number(response.headers.get("Content-Length")??0)>limit)throw new ApiError("invalid-response","Tài liệu vượt giới hạn tải.");
+        const bytes=await response.arrayBuffer();
+        if(bytes.byteLength>limit)throw new ApiError("invalid-response","Tài liệu vượt giới hạn tải.");
+        return bytes as T;
+      }
       const text = response.status === 204 ? "" : await response.text();
       let data: unknown;
       try {
@@ -107,6 +116,8 @@ export function createApiClient(deps: Dependencies) {
           response.status,
           typeof error.code === "string" ? error.code : undefined,
           response.headers.get("X-Request-Id") ?? undefined,
+          error.requestRejected === true,
+          typeof error.orderId === "string" ? error.orderId : undefined,
         );
       }
       return data as T;

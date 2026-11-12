@@ -1,0 +1,2 @@
+﻿export function formatMoney(value:string|null|undefined,currency='VND'){if(value==null||!/^\d+\.\d{2}$/.test(value))return 'Chưa xác minh';const [whole,fraction]=value.split('.');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(fraction==='00'?'':','+fraction)+(currency==='VND'?' đ':' '+currency);}
+export function financialLink(type:'TUITION'|'RECEIPT',id:number){return{pathname:'/support' as const,params:{category:'PAYMENT',resourceType:type,resourceId:String(id)}};}

@@ -1,115 +1,61 @@
+import {disableDevice} from '../features/notifications/push';
+import {pendingCheckout} from "../features/online/storage";
+import {clearPrivateDownloads} from "../features/documents/downloads";
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useRef,
-  useState,
+  useMemo,
+  useSyncExternalStore,
 } from "react";
-import { createApiClient, ApiError } from "../lib/api/client";
-import { apiBaseUrl } from "../config/env";
+import { AppState } from "react-native";
+import { getApiBaseUrl } from "../config/runtime";
 import { tokenStorage } from "../lib/session/storage";
-import { isStudentIdentity, StudentIdentity } from "../types/api";
-type State = {
-  status: "loading" | "anonymous" | "authenticated" | "error";
-  identity: StudentIdentity | null;
-  preview: boolean;
-  message?: string;
-};
-type Session = State & {
-  api: ReturnType<typeof createApiClient>;
+import { createSessionManager } from "../lib/session/manager";
+type Manager = ReturnType<typeof createSessionManager>;
+type Session = ReturnType<Manager["getSnapshot"]> & {
+  api: Manager["api"];
+  login: Manager["login"];
+  logoutAll: Manager["logoutAll"];
   retry: () => void;
-  startPreview: () => void;
-  endPreview: () => void;
-  clearLocalSession: () => Promise<void>;
+  clearLocalSession: Manager["clearLocalSession"];
 };
 const Context = createContext<Session | null>(null);
 export function SessionProvider({ children }: React.PropsWithChildren) {
-  const [state, setState] = useState<State>({
-    status: "loading",
-    identity: null,
-    preview: false,
-  });
-  const token = useRef<string | null>(null);
-  const revision = useRef(0);
-  const clearLocalSession = useCallback(async () => {
-    revision.current++;
-    token.current = null;
-    setState({ status: "anonymous", identity: null, preview: false });
-    await tokenStorage.clear();
-  }, []);
-  const [api] = useState(() =>
-    createApiClient({
+  const apiBaseUrl = getApiBaseUrl();
+  const manager = useMemo(() =>
+    createSessionManager({
       baseUrl: apiBaseUrl,
-      token: () => token.current,
-      onUnauthorized: (rejected) => {
-        if (token.current === rejected)
-          void clearLocalSession().catch(() =>
-            setState({
-              status: "error",
-              identity: null,
-              preview: false,
-              message: "Không thể xóa phiên đã lưu. Vui lòng thử lại.",
-            }),
-          );
-      },
+      storage: tokenStorage,
     }),
+    [apiBaseUrl],
   );
-  const restore = useCallback(async () => {
-    const current = ++revision.current;
-    setState({ status: "loading", identity: null, preview: false });
-    try {
-      const saved = await tokenStorage.read();
-      if (current !== revision.current) return;
-      token.current = saved;
-      if (!saved) {
-        setState({ status: "anonymous", identity: null, preview: false });
-        return;
-      }
-      const identity = await api<unknown>("/auth/me");
-      if (current !== revision.current) return;
-      if (!isStudentIdentity(identity)) {
-        await clearLocalSession();
-        return;
-      }
-      setState({ status: "authenticated", identity, preview: false });
-    } catch (error) {
-      if (current !== revision.current) return;
-      if (error instanceof ApiError && error.status === 401) return;
-      setState({
-        status: "error",
-        identity: null,
-        preview: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Không thể khôi phục phiên đăng nhập.",
-      });
-    }
-  }, [api, clearLocalSession]);
+  const state = useSyncExternalStore(
+    manager.subscribe,
+    manager.getSnapshot,
+    manager.getSnapshot,
+  );
   useEffect(() => {
-    void restore();
-    return () => {
-      revision.current++;
-    };
-  }, [restore]);
-  const startPreview = () => {
-    if (__DEV__ && state.status === "anonymous")
-      setState({ status: "anonymous", identity: null, preview: true });
-  };
-  const endPreview = () =>
-    setState({ status: "anonymous", identity: null, preview: false });
+    void manager.restore();
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active" && manager.getSnapshot().status === "authenticated")
+        void manager.restore();
+    });
+    return () => sub.remove();
+  }, [manager]);
+  useEffect(()=>{clearPrivateDownloads();return ()=>clearPrivateDownloads();},[state.identity?.accountId,state.status]);
+  useEffect(()=>{if(state.status==="anonymous")void pendingCheckout.clear().catch(()=>{});},[state.status]);
   return (
     <Context.Provider
       value={{
         ...state,
-        api,
+        api: manager.api,
+        login: manager.login,
+        logoutAll: async()=>{const account=manager.getSnapshot().identity?.accountId;if(account)try{await disableDevice(manager.api,account);}catch{}return manager.logoutAll();},
         retry: () => {
-          void restore();
+          void manager.restore();
         },
-        startPreview,
-        endPreview,
-        clearLocalSession,
+        clearLocalSession: manager.clearLocalSession,
       }}
     >
       {children}
@@ -117,7 +63,7 @@ export function SessionProvider({ children }: React.PropsWithChildren) {
   );
 }
 export function useSession() {
-  const value = useContext(Context);
-  if (!value) throw new Error("SessionProvider is required");
-  return value;
+  const session = useContext(Context);
+  if (!session) throw new Error("SessionProvider is required");
+  return session;
 }

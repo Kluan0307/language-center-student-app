@@ -1,0 +1,23 @@
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development"
+    },
+    "preview": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "environment": "preview",
+      "android": { "buildType": "apk" },
+      "env": { "LC_RELEASE_BUILD": "true" }
+    },
+    "production": {
+      "developmentClient": false,
+      "distribution": "store",
+      "environment": "production",
+      "android": { "buildType": "app-bundle" },
+      "env": { "LC_RELEASE_BUILD": "true" }
+    }
+  }
+}

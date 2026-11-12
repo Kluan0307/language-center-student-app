@@ -1,0 +1,9 @@
+﻿export type Tuition={id:number;billingRootId:number|null;enrollmentIds:number[];enrollmentLabel:string;courseName:string|null;branchId:number|null;currency:string;originalAmount:string;discountAmount:string;totalAmount:string;netPaid:string|null;outstanding:string|null;credit:string|null;dueDate:string;status:string;overdue:boolean;cancelled:boolean;verification:'VERIFIED'|'REVIEW_REQUIRED';reviewCode:string|null;version:number};
+export type Receipt={id:number;tuitionId:number;receiptNo:string|null;paidAt:string;amount:string;netAmount:string|null;voidedAmount:string|null;refundedAmount:string|null;currency:string;method:string;state:string;className?:string|null;courseName?:string|null};
+export type TuitionDetail={tuition:Tuition;adjustments:{id:number;oldAmount:string;newAmount:string;oldDiscount:string;newDiscount:string;oldDueDate:string;newDueDate:string;date:string}[]};
+export type ReceiptDetail={receipt:Receipt;tuition:Tuition;corrections:{id:number;type:'VOID'|'REFUND';amount:string;date:string}[]};
+export type Summary={currency:string;totalCount:number;activeCount:number;cancelledCount:number;overdueCount:number;reviewCount:number;pendingBillingRoots:number;coverageComplete:boolean;totalAmount:string|null;netPaid:string|null;outstanding:string|null;credit:string|null;asOf:string};
+export type Page<T>={content:T[];totalPages:number;totalElements:number};
+export const feeLabels:Record<string,string>={UNPAID:'Chưa đóng',PARTIAL:'Đóng một phần',PAID:'Đã đóng đủ',OVERDUE:'Quá hạn',CANCELLED:'Đã hủy',REVIEW_REQUIRED:'Cần đối soát'};
+export const receiptLabels:Record<string,string>={VALID:'Có hiệu lực',VOIDED:'Đã đảo phiếu',REFUNDED:'Đã hoàn toàn bộ',PARTIALLY_REFUNDED:'Đã hoàn một phần',REVIEW_REQUIRED:'Cần đối soát'};
+export const methods:Record<string,string>={CASH:'Tiền mặt',BANK_TRANSFER:'Chuyển khoản',CARD:'Thẻ',WALLET:'Ví điện tử'};

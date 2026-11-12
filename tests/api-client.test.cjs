@@ -26,7 +26,7 @@ function load(file, imports = {}) {
   });
   return exports;
 }
-const { parseApiBaseUrl } = load("src/config/env.ts");
+const { parseApiBaseUrl, resolveApiBaseUrl } = load("src/config/env.ts");
 const { isStudentIdentity } = load("src/types/api.ts");
 const { createApiClient } = load("src/lib/api/client.ts", {
   "../../config/env": { apiBaseUrl: null },
@@ -193,3 +193,7 @@ test("caller cancellation is distinct from timeout", async () => {
   c.abort();
   await assert.rejects(promise, (e) => e.kind === "cancelled");
 });
+
+ test("native Expo manifest supplies API URL when public env is not in the client runtime",()=>{assert.equal(resolveApiBaseUrl(undefined,"http://192.168.1.2:8080/api/v1"),"http://192.168.1.2:8080/api/v1");});
+ test("explicit public environment wins over a stale manifest URL",()=>{assert.equal(resolveApiBaseUrl("https://current.example/api/v1","https://old.example/api/v1"),"https://current.example/api/v1");});
+ test("invalid configured URL cannot silently fall back to another server",()=>{assert.equal(resolveApiBaseUrl("https://wrong.example/other","https://old.example/api/v1"),null);assert.equal(resolveApiBaseUrl(undefined,"https://u:p@old.example/api/v1"),null);assert.equal(resolveApiBaseUrl(undefined,{}),null);});

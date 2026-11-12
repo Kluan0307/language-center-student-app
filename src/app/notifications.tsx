@@ -1,12 +1,4 @@
-import { SessionGate } from "../components/SessionGate";
-import { Unavailable } from "../components/Unavailable";
-export default function Notifications() {
-  return (
-    <SessionGate>
-      <Unavailable
-        title="Thông báo"
-        description="Cập nhật về lịch học, kết quả và thanh toán."
-      />
-    </SessionGate>
-  );
-}
+import {useState} from 'react';import {Text} from 'react-native';import {router} from 'expo-router';
+import {SessionGate} from '../components/SessionGate';import {Button,Card,Heading,Screen,StateView,textStyles} from '../components/ui';import {Choice} from '../components/Choice';import {useStudentQuery} from '../features/learning/useStudentQuery';import {useNotificationInbox} from '../providers/NotificationProvider';import type {Notice} from '../features/notifications/types';
+export default function Notifications(){return <SessionGate><Content/></SessionGate>;}
+function Content(){const [page,setPage]=useState(0),[filter,setFilter]=useState('all');const inbox=useNotificationInbox();const list=useStudentQuery<{content:Notice[];totalPages:number;totalElements:number}>('/academic/student/me/notifications?page='+page+'&size=20'+(filter==='all'?'':'&unread='+String(filter==='unread')));return <Screen><Heading title="Thông báo" subtitle={inbox.count===null?'Các cập nhật từ trung tâm':inbox.count+' thông báo chưa đọc'}/><Button secondary title="Cài đặt thông báo" onPress={()=>router.push('/settings')}/><Choice title="Hiển thị" value={filter} options={[{value:'all',label:'Tất cả'},{value:'unread',label:'Chưa đọc'},{value:'read',label:'Đã đọc'}]} onChange={v=>{setFilter(v);setPage(0);}}/>{list.loading?<StateView loading title="Đang tải thông báo" description="Vui lòng chờ."/>:list.error?<StateView title="Chưa tải được thông báo" description={list.error} action={{title:'Thử lại',onPress:list.reload}}/>:list.data?<>{!list.data.content.length&&<StateView title="Chưa có thông báo phù hợp" description="Các cập nhật mới sẽ được lưu tại đây, kể cả khi bạn không bật push."/>}{list.data.content.map(n=><Card key={n.id}><Text style={textStyles.section}>{n.readAt?'':'● '}{n.title}</Text><Text style={textStyles.body}>{n.body}</Text><Text style={textStyles.body}>{n.createdAt.slice(0,19).replace('T',' ')} · Giờ Việt Nam</Text><Button title="Xem thông báo" onPress={()=>router.push({pathname:'/notifications/[id]',params:{id:String(n.id)}})}/></Card>)}<Text style={textStyles.body}>{list.data.totalElements} thông báo</Text><Button secondary title="Trang trước" disabled={!page} onPress={()=>setPage(v=>v-1)}/><Button secondary title="Trang tiếp" disabled={page+1>=list.data.totalPages} onPress={()=>setPage(v=>v+1)}/></>:null}<Button secondary title="Tải lại" onPress={()=>{list.reload();inbox.reload();}}/></Screen>;}

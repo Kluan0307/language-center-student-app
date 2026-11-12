@@ -1,8 +1,9 @@
-﻿import { Tabs, router } from "expo-router";
+import {useNotificationInbox} from '../../providers/NotificationProvider';
+import { Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SessionGate } from "../../components/SessionGate";
-import { useSession } from "../../providers/SessionProvider";
 import { theme as t } from "../../theme/tokens";
 const items = [
   { name: "index", title: "Trang chủ", icon: "home-outline" },
@@ -12,35 +13,41 @@ const items = [
   { name: "profile", title: "Cá nhân", icon: "person-outline" },
 ] as const;
 export default function TabsLayout() {
-  const session = useSession();
+  const inbox=useNotificationInbox();
+  const insets = useSafeAreaInsets();
   return (
     <SessionGate>
       <View style={{ flex: 1 }}>
-        {session.preview && (
-          <View style={{ backgroundColor: t.colors.primaryLight, padding: 8 }}>
-            <Text
-              style={{
-                color: t.colors.primaryDark,
-                textAlign: "center",
-                fontSize: 12,
-              }}
-            >
-              Xem trước phát triển • Chưa kết nối dữ liệu
-            </Text>
-          </View>
-        )}
         <Tabs
           screenOptions={{
-            headerTitle: "Language Center",
+            headerTitle: () => (
+              <View style={{ gap: 3 }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: t.colors.text,
+                  }}
+                >
+                  Language Center
+                </Text>
+
+              </View>
+            ),
             headerShadowVisible: false,
             headerTitleStyle: { color: t.colors.text, fontWeight: "700" },
             tabBarActiveTintColor: t.colors.primary,
             tabBarInactiveTintColor: t.colors.muted,
-            tabBarStyle: { borderTopColor: t.colors.border },
+            tabBarStyle: {
+              borderTopColor: t.colors.border,
+              height: 64 + insets.bottom,
+              paddingTop: 6,
+              paddingBottom: Math.max(insets.bottom, 8),
+            },
             headerRight: () => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Mở thông báo"
+                accessibilityLabel={inbox.count===null?"Mở thông báo":"Mở thông báo, "+inbox.count+" chưa đọc"}
                 hitSlop={8}
                 onPress={() => router.push("/notifications")}
                 style={{ padding: 14 }}
@@ -50,7 +57,7 @@ export default function TabsLayout() {
                   size={24}
                   color={t.colors.text}
                 />
-              </Pressable>
+              {inbox.count!==null&&inbox.count>0&&<Text style={{position:'absolute',right:4,top:4,backgroundColor:t.colors.primary,color:'white',borderRadius:12,paddingHorizontal:5,fontSize:11,minWidth:18,textAlign:'center'}}>{inbox.count>99?'99+':inbox.count}</Text>}</Pressable>
             ),
           }}
         >

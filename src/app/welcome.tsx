@@ -1,76 +1,100 @@
-import { Redirect, router } from "expo-router";
-import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  Button,
-  Card,
-  Heading,
-  Screen,
-  StateView,
-  textStyles,
-} from "../components/ui";
+import { safeReturnTo } from "../features/learning/utils";
+import { SessionStatus } from "../components/SessionStatus";
+import { useState } from "react";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { KeyboardAvoidingView, Platform, Text } from "react-native";
+import { Button, Card, Heading, Screen, textStyles } from "../components/ui";
 import { useSession } from "../providers/SessionProvider";
-import { theme } from "../theme/tokens";
+import { ErrorNotice, Field } from "../features/account/fields";
+import { ApiError } from "../lib/api/client";
 export default function Welcome() {
   const session = useSession();
+  const params = useLocalSearchParams<{
+    passwordChanged?: string;
+    returnTo?: string;
+  }>();
+  const [username, setUsername] = useState(""),
+    [password, setPassword] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState<string>();
   if (session.status === "loading" || session.status === "error")
-    return (
-      <Screen>
-        <StateView
-          title={
-            session.status === "loading"
-              ? "Đang mở ứng dụng"
-              : "Chưa thể mở phiên"
-          }
-          description={session.message ?? "Vui lòng chờ trong giây lát."}
-          loading={session.status === "loading"}
-          action={
-            session.status === "error"
-              ? { title: "Thử lại", onPress: session.retry }
-              : undefined
-          }
-        />
-      </Screen>
-    );
-  if (session.status === "authenticated" || session.preview)
-    return <Redirect href="/" />;
+    return <SessionStatus />;
+  if (session.status === "authenticated")
+    return <Redirect href={safeReturnTo(params.returnTo) ?? "/"} />;
+  async function login() {
+    if (busy) return;
+    setError(undefined);
+    if (!username.trim() || !password) {
+      setError("Vui lòng nhập tên đăng nhập và mật khẩu.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await session.login(username, password);
+      setPassword("");
+    } catch (e) {
+      setError(
+        e instanceof ApiError && e.status === 401
+          ? "Tên đăng nhập hoặc mật khẩu chưa đúng, hoặc tài khoản đã bị khóa."
+          : e instanceof Error
+            ? e.message
+            : "Không thể đăng nhập.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <Screen>
-      <View style={{ paddingTop: 32, gap: 24 }}>
-        <Ionicons
-          name="school-outline"
-          size={56}
-          color={theme.colors.primary}
-        />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <Screen>
         <Heading
-          title="Việc học của bạn, trong tầm tay"
-          subtitle="Lịch học, kết quả và học phí — cùng bạn trên hành trình học tiếng Anh."
+          title="Chào mừng đến Language Center"
+          subtitle="Theo dõi việc học của bạn, mọi lúc mọi nơi."
         />
         <Card>
-          <Text style={textStyles.label}>Chào mừng đến Language Center</Text>
-          <Text style={textStyles.body}>
-            Dịch vụ tài khoản học viên chưa được mở. Trung tâm sẽ cung cấp thông
-            tin kích hoạt khi sẵn sàng.
-          </Text>
-          <Button
-            title="Liên hệ và hỗ trợ"
-            secondary
-            onPress={() => router.push("/support")}
-          />
-        </Card>
-        {__DEV__ && (
-          <Card>
-            <Text style={textStyles.label}>
-              Xem trước giao diện • Phát triển
-            </Text>
+          <Text style={textStyles.section}>Đăng nhập học viên</Text>
+          {params.passwordChanged === "1" && (
             <Text style={textStyles.body}>
-              Chỉ xem bố cục, không đăng nhập và không có dữ liệu học viên. Chế
-              độ này không có trong bản production.
+              Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.
             </Text>
-            <Button title="Khám phá giao diện" onPress={session.startPreview} />
-          </Card>
-        )}
-      </View>
-    </Screen>
+          )}
+          <Field
+            label="Tên đăng nhập"
+            username
+            value={username}
+            onChangeText={setUsername}
+            disabled={busy}
+          />
+          <Field
+            label="Mật khẩu"
+            password
+            value={password}
+            onChangeText={setPassword}
+            disabled={busy}
+          />
+          {error && <ErrorNotice message={error} />}
+          <Button
+            title={busy ? "Đang đăng nhập…" : "Đăng nhập"}
+            disabled={busy}
+            onPress={() => {
+              void login();
+            }}
+          />
+          <Button
+            title="Quên mật khẩu / Hỗ trợ tài khoản"
+            secondary
+            disabled={busy}
+            onPress={() => router.push("/contact")}
+          />
+          <Text style={textStyles.body}>
+            Dùng tài khoản trung tâm đã cấp. Không tự đăng ký bằng mã học viên.
+          </Text>
+        </Card>
+
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }

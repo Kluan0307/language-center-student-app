@@ -16,4 +16,9 @@ export function parseApiBaseUrl(value?: string): string | null {
     return null;
   }
 }
+export function resolveApiBaseUrl(environmentValue?: string, manifestValue?: unknown): string | null {
+  // A configured invalid value is an error; never silently switch servers.
+  if (environmentValue?.trim()) return parseApiBaseUrl(environmentValue);
+  return parseApiBaseUrl(typeof manifestValue === "string" ? manifestValue : undefined);
+}
 export const apiBaseUrl = parseApiBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
