@@ -4,6 +4,8 @@ React Native, TypeScript và Expo. Ứng dụng dùng API thật qua Gateway, g�
 
 Màn hình xem trước, nút khám phá không đăng nhập và hướng dẫn thẻ test trong giao diện đã được gỡ. Bộ kiểm thử được giữ trong `tests/`, không phải giao diện người dùng và không đóng gói thành chức năng app.
 
+Bản cài nội bộ đã tạo ngày 12/11/2026: [APK Android 64-bit, khoảng 28,7 MB](artifacts/LanguageCenter-1.0.0-sandbox-arm64-20261112103722.apk). Chữ ký hợp lệ, manifest `debuggable=false`, đã kiểm URL HTTPS và scan secret. Xem [manifest và SHA-256](artifacts/latest-android.json). Chưa có thiết bị kết nối để nghiệm thu cài/chạy native; backend và ngrok phải còn hoạt động khi dùng bản cài này.
+
 ## Chạy phát triển
 
 ```powershell

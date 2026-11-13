@@ -4,3 +4,5 @@ test('zero is real and missing balance stays unknown',()=>{assert.equal(out.form
 test('fraction is never rounded through Number',()=>assert.equal(out.formatMoney('1234567890123.01'),'1.234.567.890.123,01 đ'));
 test('invalid scientific and malformed amounts are rejected',()=>{for(const v of ['1e9','1,00','Infinity','NaN','123'])assert.equal(out.formatMoney(v),'Chưa xác minh');});
 test('support links keep explicit owned resource type',()=>{assert.equal(out.financialLink('TUITION',12).params.resourceId,'12');assert.equal(out.financialLink('RECEIPT',13).params.resourceType,'RECEIPT');});
+
+test('online support preserves UUID as a string key, separate from numeric tuition references',()=>{const id='11223344-5566-7788-9900-aabbccddeeff';const link=out.paymentOrderSupportLink(id);assert.equal(link.params.resourceType,'PAYMENT_ORDER');assert.equal(link.params.resourceKey,id);assert.equal(link.params.resourceId,undefined);assert.equal(out.financialLink('TUITION',15).params.resourceId,'15');});

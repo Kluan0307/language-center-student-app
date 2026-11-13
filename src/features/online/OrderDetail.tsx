@@ -5,7 +5,7 @@ import {SessionGate} from '../../components/SessionGate';
 import {Button,Card,Heading,Screen,StateView,textStyles} from '../../components/ui';
 import {useSession} from '../../providers/SessionProvider';
 import {useNotificationInbox} from '../../providers/NotificationProvider';
-import {formatMoney,financialLink} from '../finance/utils';
+import {formatMoney,paymentOrderSupportLink} from '../finance/utils';
 import {financeEvents} from '../finance/events';
 import {TextLink} from '../finance/Links';
 import {validOrderId} from './storage';
@@ -82,11 +82,11 @@ function Content(){
         {message&&<Text accessibilityRole="alert" style={textStyles.body}>{message}</Text>}
         {refreshing&&<Text style={textStyles.body}>Đang cập nhật trạng thái…</Text>}
         {data.state==='SUCCEEDED'&&data.receiptId?<Button title="Xem phiếu thu" onPress={()=>router.push({pathname:'/receipts/[id]',params:{id:String(data.receiptId)}})}/>:
-          stage!.action==='support'?<Button title="Yêu cầu trung tâm kiểm tra" onPress={()=>router.push(financialLink('TUITION',data.tuitionId))}/>:
+          stage!.action==='support'?<Button title="Yêu cầu trung tâm kiểm tra" onPress={()=>router.push(paymentOrderSupportLink(data.id))}/>:
           stage!.action==='tuition'?<Button title="Kiểm tra khoản học phí" onPress={()=>router.push({pathname:'/tuitions/[id]',params:{id:String(data.tuitionId)}})}/>:
           stage!.action==='continue'?<Button title={busy?'Đang mở…':'Tiếp tục thanh toán'} disabled={busy} onPress={()=>void bank()}/>:
           <Button title={refreshing?'Đang kiểm tra…':'Kiểm tra lại kết quả'} disabled={refreshing} onPress={()=>checkRef.current()}/>}
-        {data.reviewRequired&&data.state==='SUCCEEDED'&&<><Text style={textStyles.body}>Phiếu trên đã được ghi nhận, nhưng có thông tin giao dịch bổ sung cần kiểm tra. Vui lòng liên hệ trung tâm.</Text><TextLink title="Nhờ trung tâm kiểm tra" onPress={()=>router.push(financialLink('TUITION',data.tuitionId))}/></>}
+        {data.reviewRequired&&data.state==='SUCCEEDED'&&<><Text style={textStyles.body}>Phiếu trên đã được ghi nhận, nhưng có thông tin giao dịch bổ sung cần kiểm tra. Vui lòng liên hệ trung tâm.</Text><TextLink title="Nhờ trung tâm kiểm tra" onPress={()=>router.push(paymentOrderSupportLink(data.id))}/></>}
         {data.state==='PENDING'&&!data.reviewRequired&&afterBank&&<TextLink title={busy?'Đang mở…':'Chưa thanh toán? Tiếp tục phiên này'} disabled={busy} onPress={()=>void bank()}/>}
         {paused&&data.state==='PENDING'&&<Text style={textStyles.body}>Ứng dụng đã tạm dừng kiểm tra tự động. Bạn có thể kiểm tra lại sau; không cần tạo giao dịch mới.</Text>}
         <Text style={textStyles.body}>Mã giao dịch: {data.displayCode??'GD-'+data.id.slice(0,8).toUpperCase()}</Text>
@@ -94,7 +94,7 @@ function Content(){
       <TextLink title="Xem học phí và số còn phải đóng" onPress={()=>router.push({pathname:'/tuitions/[id]',params:{id:String(data.tuitionId)}})}/>
       <TextLink title="Chi tiết giao dịch" onPress={()=>setDetails(v=>!v)}/>
       {details&&<Card><Text selectable style={textStyles.body}>Mã đầy đủ: {data.id}</Text><Text style={textStyles.body}>Tạo lúc: {data.createdAt.slice(0,19).replace('T',' ')} (giờ Việt Nam)</Text><Text style={textStyles.body}>Hết hạn: {data.expiresAt.slice(0,19).replace('T',' ')} (giờ Việt Nam)</Text><TextLink title="Kiểm tra lại trạng thái" onPress={()=>checkRef.current()}/></Card>}
-      {stage!.action!=='support'&&<TextLink title="Cần hỗ trợ về giao dịch" onPress={()=>router.push(financialLink('TUITION',data.tuitionId))}/>}
+      {stage!.action!=='support'&&<TextLink title="Cần hỗ trợ về giao dịch" onPress={()=>router.push(paymentOrderSupportLink(data.id))}/>}
       </>}
     <TextLink title="Lịch sử thanh toán" onPress={()=>router.navigate({pathname:'/tuition',params:{tab:'history'}})}/>
   </Screen>;

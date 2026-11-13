@@ -18,6 +18,7 @@ function run(command,args,options={}){return new Promise((resolve,reject)=>{
  gradle=gradle.replace(/-DCMAKE_OBJECT_PATH_MAX=\d+/g,'-DCMAKE_OBJECT_PATH_MAX=240');fs.writeFileSync(appGradle,gradle);
  const poolArgs='"-DCMAKE_JOB_POOLS=lc_compile=1;lc_link=1", "-DCMAKE_JOB_POOL_COMPILE=lc_compile", "-DCMAKE_JOB_POOL_LINK=lc_link"';
  if(!gradle.includes('// LC bounded native compilation')){gradle+='\n// LC bounded native compilation\nandroid { defaultConfig { externalNativeBuild { cmake { arguments '+poolArgs+' } } } }\n';fs.writeFileSync(appGradle,gradle);}
+ if(!gradle.includes('// LC public environment bundle inputs')){gradle+='\n// LC public environment bundle inputs\ntasks.withType(com.facebook.react.tasks.BundleHermesCTask).configureEach { inputs.property("lcPublicEnvironment", System.getenv().findAll { key, value -> key.startsWith("EXPO_PUBLIC_") }.sort()) }\n';fs.writeFileSync(appGradle,gradle);}
  const rootGradlePath=path.join(root,'android/build.gradle');let rootGradle=fs.readFileSync(rootGradlePath,'utf8');
  if(!rootGradle.includes('// LC bounded library compilation')){rootGradle+='\n// LC bounded library compilation\nsubprojects { p -> p.plugins.withId("com.android.library") { p.android.defaultConfig.externalNativeBuild.cmake.arguments.addAll(['+poolArgs+']) } }\n';fs.writeFileSync(rootGradlePath,rootGradle);}
  if(!rootGradle.includes('// LC short native library paths')){rootGradle+='\n// LC short native library paths\nsubprojects { p -> p.plugins.withId("com.android.library") { p.android.externalNativeBuild.cmake.buildStagingDirectory = rootProject.file(".native/" + p.name); p.android.defaultConfig.externalNativeBuild.cmake.arguments.add("-DCMAKE_OBJECT_PATH_MAX=240") } }\n';fs.writeFileSync(rootGradlePath,rootGradle);}
@@ -31,10 +32,12 @@ function run(command,args,options={}){return new Promise((resolve,reject)=>{
      }
      if(!drive)throw Error('No unused drive letter for a short Windows build path.');
    }
-   await run(env.ComSpec||'cmd.exe',['/d','/s','/c','gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon'],{cwd:path.join(buildRoot,'android'),env});
+   const command='gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon'+(process.argv.includes('--check-config')?' --dry-run':'');
+   await run(env.ComSpec||'cmd.exe',['/d','/s','/c',command],{cwd:path.join(buildRoot,'android'),env});
  }finally{
    if(drive){const mappings=spawnSync('subst.exe',[],{encoding:'utf8',windowsHide:true}).stdout||'';if(mappings.split(/\r?\n/).some(line=>line.startsWith(drive+'\\: => ')&&line.endsWith(mappedRoot)))spawnSync('subst.exe',[drive,'/D'],{windowsHide:true});}
  }
+ if(process.argv.includes('--check-config')){console.log('Android build configuration validated; no APK generated.');return;}
  const source=path.join(root,'android/app/build/outputs/apk/release/app-release.apk');if(!fs.existsSync(source))throw Error('Gradle did not produce the expected APK.');
  const dir=path.join(root,'artifacts');fs.mkdirSync(dir,{recursive:true});const stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14);
  const file='LanguageCenter-'+config.version+'-sandbox-arm64-'+stamp+'.apk';fs.copyFileSync(source,path.join(dir,file));
