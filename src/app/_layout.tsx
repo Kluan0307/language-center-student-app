@@ -1,3 +1,4 @@
+import { StudentQueryProvider } from '../providers/StudentQueryProvider';
 import {NotificationProvider} from '../providers/NotificationProvider';
 ﻿import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -7,7 +8,7 @@ import { theme } from "../theme/tokens";
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <SessionProvider><NotificationProvider>
+      <SessionProvider><StudentQueryProvider><NotificationProvider>
         <StatusBar style="dark" />
         <Stack
           screenOptions={{
@@ -51,7 +52,7 @@ export default function RootLayout() {
             options={{ title: "Không tìm thấy" }}
           />
         </Stack>
-      </NotificationProvider></SessionProvider>
+      </NotificationProvider></StudentQueryProvider></SessionProvider>
     </SafeAreaProvider>
   );
 }

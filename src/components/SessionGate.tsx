@@ -1,41 +1,25 @@
-﻿import { Redirect, useGlobalSearchParams, usePathname } from "expo-router";
-import { useSession } from "../providers/SessionProvider";
-import { SessionStatus } from "./SessionStatus";
-import { safeReturnTo, scheduleParams } from "../features/learning/utils";
+import { Redirect, useGlobalSearchParams, usePathname } from 'expo-router';
+import { useSession } from '../providers/SessionProvider';
+import { SessionStatus } from './SessionStatus';
+import { safeReturnTo, scheduleParams } from '../features/learning/utils';
 export function SessionGate({ children }: React.PropsWithChildren) {
-  const session = useSession();
-  const pathname = usePathname();
-  const params = useGlobalSearchParams();
-  const schedule = scheduleParams(params);
-  const returnTo = safeReturnTo(
-    pathname === "/schedule"
-      ? pathname +
-          "?" +
-          new URLSearchParams({
-            date: schedule.date,
-            view: schedule.view,
-            ...(schedule.enrollmentId
-              ? { enrollmentId: schedule.enrollmentId }
-              : {}),
-          }).toString()
-      : (pathname === "/documents"||pathname === "/tuition") && typeof params.enrollmentId === "string" ? pathname+"?enrollmentId="+params.enrollmentId : pathname === "/receipts" && typeof params.tuitionId === "string" ? pathname+"?tuitionId="+params.tuitionId : pathname === "/support" && params.category === "PAYMENT" && typeof params.resourceType === "string" && typeof params.resourceId === "string" ? "/support?category=PAYMENT&resourceType="+params.resourceType+"&resourceId="+params.resourceId : pathname,
-  );
-  if (session.status === "loading" || session.status === "error")
-    return <SessionStatus />;
-  if (session.status !== "authenticated")
-    return (
-      <Redirect
-        href={{ pathname: "/welcome", params: returnTo ? { returnTo } : {} }}
-      />
-    );
-  if (session.identity?.mustChangePassword)
-    return (
-      <Redirect
-        href={{
-          pathname: "/change-password",
-          params: returnTo ? { returnTo } : {},
-        }}
-      />
-    );
+  const session = useSession(), pathname = usePathname(), params = useGlobalSearchParams();
+  const keys: Record<string, string[]> = {
+    '/support': ['category', 'resourceType', 'resourceId', 'resourceKey'], '/documents': ['enrollmentId'],
+    '/tuition': ['enrollmentId', 'tab'], '/receipts': ['tuitionId'], '/payment-orders': ['tuitionId'],
+  };
+  let target = pathname;
+  if (pathname === '/schedule') {
+    const state = scheduleParams(params);
+    target += '?' + new URLSearchParams({ date: state.date, view: state.view, ...(state.enrollmentId ? { enrollmentId: state.enrollmentId } : {}) }).toString();
+  } else if (keys[pathname]) {
+    const query = new URLSearchParams();
+    for (const key of keys[pathname]) if (typeof params[key] === 'string') query.set(key, params[key] as string);
+    if (query.size) target += '?' + query.toString();
+  }
+  const returnTo = safeReturnTo(target);
+  if (session.status === 'loading' || session.status === 'error') return <SessionStatus />;
+  if (session.status !== 'authenticated') return <Redirect href={{ pathname: '/welcome', params: returnTo ? { returnTo } : {} }} />;
+  if (session.identity?.mustChangePassword) return <Redirect href={{ pathname: '/change-password', params: returnTo ? { returnTo } : {} }} />;
   return children;
 }

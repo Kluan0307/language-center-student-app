@@ -1,72 +1,14 @@
+import { textStyles } from "../../components/ui";
 ﻿import type { ScrollViewInstance } from "react-native";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
-import { Card, textStyles } from "../../components/ui";
 import { theme as t } from "../../theme/tokens";
 import type { Session } from "./types";
 import { sessionLabels } from "./types";
 import { addDays, displayDate, layoutDay, minuteOfDay } from "./utils";
-export function SessionCard({ session: s }: { session: Session }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={"Xem buổi " + s.className + " " + s.date}
-      onPress={() => router.push("/sessions/" + s.sessionId)}
-    >
-      <Card>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <Text style={textStyles.label}>
-            {s.startTime?.slice(0, 5) ?? "Chưa rõ giờ"}
-            {s.endTime ? " – " + s.endTime.slice(0, 5) : ""}
-          </Text>
-          <Text
-            style={{
-              color:
-                s.status === "CANCELLED"
-                  ? t.colors.muted
-                  : s.status === "COMPLETED"
-                    ? t.colors.success
-                    : t.colors.primary,
-            }}
-          >
-            {sessionLabels[s.status]}
-          </Text>
-        </View>
-        <Text style={textStyles.label}>{s.className}</Text>
-        <Text style={textStyles.body}>
-          {displayDate(s.date)} · {s.branch.name}
-        </Text>
-        <Text style={textStyles.body}>
-          {s.roomName ?? "Chưa cập nhật phòng"} ·{" "}
-          {s.teacherName ?? "Chưa phân công giáo viên"}
-        </Text>
-        {(s.isMakeup || s.teacherChanged) && (
-          <Text style={{ color: t.colors.primary }}>
-            {[
-              s.isMakeup ? "Học bù" : null,
-              s.teacherChanged ? "Đổi giáo viên" : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
-        )}
-        {s.legacyEstimated && (
-          <Text style={textStyles.body}>
-            Lịch dựa trên đăng ký cũ; trung tâm cần xác minh thời kỳ học.
-          </Text>
-        )}
-      </Card>
-    </Pressable>
-  );
-}
+import { SessionCard } from "./SessionCard";
+export { SessionCard } from "./SessionCard";
 export function WeekGrid({
   from,
   sessions,
@@ -77,6 +19,10 @@ export function WeekGrid({
   focusDate?: string;
 }) {
   const scroll = useRef<ScrollViewInstance>(null);
+  useEffect(() => {
+    const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+    scroll.current?.scrollTo({ x: Math.max(0, days.indexOf(focusDate)) * 142, animated: false });
+  }, [from, focusDate]);
   const valid = sessions.filter((s) => {
     const start = minuteOfDay(s.startTime),
       end = minuteOfDay(s.endTime);

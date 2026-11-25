@@ -44,7 +44,7 @@ function Content(){
       finally{
         fetching=false;if(active()){
           setRefreshing(false);attempts++;
-          const pending=!last||last.state==='PENDING'||last.state==='CREATED';
+          const pending=!last||last.state==='PENDING'||last.state==='CREATED'||last.state==='SUCCEEDED'&&!last.receiptId;
           if(pending&&attempts<10&&Date.now()<deadline&&failures<3){timer=setTimeout(()=>void refresh(),Math.min(3000+attempts*1500,10000));}
           else if(pending)setPaused(true);
         }
@@ -73,11 +73,11 @@ function Content(){
     finally{flight.current=false;if(active()){setBusy(false);checkRef.current();}}
   }
 
-  return <Screen><Heading title="Kết quả thanh toán"/>
+  return <Screen onRefresh={()=>checkRef.current()} refreshing={refreshing}><Heading title="Kết quả thanh toán"/>
     {!key?<StateView title="Đường dẫn không hợp lệ" description="Hãy mở giao dịch từ Học phí."/>:
       !data&&!message?<StateView loading title="Đang kiểm tra giao dịch" description="Vui lòng chờ."/>:
       !data?<StateView title="Chưa kiểm tra được kết quả" description={message!} action={{title:'Kiểm tra lại',onPress:()=>checkRef.current()}}/>:
-      <><Card><Text style={textStyles.section}>{stage!.title}</Text><Text style={textStyles.label}>{formatMoney(data.amount)}</Text><Text style={textStyles.body}>{data.className??'Khoản học phí'}{data.courseName?' · '+data.courseName:''}</Text><Text style={textStyles.body}>{stage!.description}</Text>
+      <><Card><Text style={textStyles.section}>{stage!.title}</Text><Text style={textStyles.label}>{formatMoney(data.amount,data.currency)}</Text><Text style={textStyles.body}>{data.className??'Khoản học phí'}{data.courseName?' · '+data.courseName:''}</Text><Text style={textStyles.body}>{stage!.description}</Text>
         <Text style={textStyles.body}>{data.environment==='SANDBOX'?'VNPAY sandbox · Giao dịch thử nghiệm':'Giao dịch thuộc môi trường không được hỗ trợ'}</Text>
         {message&&<Text accessibilityRole="alert" style={textStyles.body}>{message}</Text>}
         {refreshing&&<Text style={textStyles.body}>Đang cập nhật trạng thái…</Text>}
@@ -96,6 +96,6 @@ function Content(){
       {details&&<Card><Text selectable style={textStyles.body}>Mã đầy đủ: {data.id}</Text><Text style={textStyles.body}>Tạo lúc: {data.createdAt.slice(0,19).replace('T',' ')} (giờ Việt Nam)</Text><Text style={textStyles.body}>Hết hạn: {data.expiresAt.slice(0,19).replace('T',' ')} (giờ Việt Nam)</Text><TextLink title="Kiểm tra lại trạng thái" onPress={()=>checkRef.current()}/></Card>}
       {stage!.action!=='support'&&<TextLink title="Cần hỗ trợ về giao dịch" onPress={()=>router.push(paymentOrderSupportLink(data.id))}/>}
       </>}
-    <TextLink title="Lịch sử thanh toán" onPress={()=>router.navigate({pathname:'/tuition',params:{tab:'history'}})}/>
+    <TextLink title="Lịch sử thanh toán" onPress={()=>router.navigate({pathname:'/tuition',params:{tab:'history',enrollmentId:undefined}})}/>
   </Screen>;
 }

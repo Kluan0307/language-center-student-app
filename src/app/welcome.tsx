@@ -2,7 +2,7 @@ import { safeReturnTo } from "../features/learning/utils";
 import { SessionStatus } from "../components/SessionStatus";
 import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { KeyboardAvoidingView, Platform, Text } from "react-native";
+import { Text } from "react-native";
 import { Button, Card, Heading, Screen, textStyles } from "../components/ui";
 import { useSession } from "../providers/SessionProvider";
 import { ErrorNotice, Field } from "../features/account/fields";
@@ -45,10 +45,7 @@ export default function Welcome() {
     }
   }
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <>
       <Screen>
         <Heading
           title="Chào mừng đến Language Center"
@@ -95,6 +92,6 @@ export default function Welcome() {
         </Card>
 
       </Screen>
-    </KeyboardAvoidingView>
+    </>
   );
 }

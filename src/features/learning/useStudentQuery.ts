@@ -1,30 +1,29 @@
-import {useCallback,useEffect,useState} from 'react';
-import {useFocusEffect} from 'expo-router';
-import {useSession} from '../../providers/SessionProvider';
-import {loadAllPages} from './utils';
-import {financeEvents} from '../finance/events';
+import { useCallback, useSyncExternalStore } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useSession } from '../../providers/SessionProvider';
+import { useStudentQueries } from '../../providers/StudentQueryProvider';
+import { loadAllPages } from './utils';
 
-export function useStudentQuery<T>(path:string|null,allPages=false){
-  const {api,status,identity}=useSession();
-  const enabled=status==='authenticated'&&!identity?.mustChangePassword&&path!==null;
-  const financial=path?.startsWith('/finance/')===true;
-  const [revision,setRevision]=useState(0),[fetching,setFetching]=useState(false);
-  const base=JSON.stringify([identity?.accountId,path,allPages]);
-  const key=JSON.stringify([base,revision]);
-  const [result,setResult]=useState<{base:string;key:string;data?:T;error?:string}>();
-  const reload=useCallback(()=>setRevision(v=>v+1),[]);
-  useEffect(()=>financial?financeEvents.subscribe(reload):undefined,[financial,reload]);
-  useFocusEffect(useCallback(()=>{
-    if(!enabled)return;
-    if(!financial)setResult(undefined);
-    const controller=new AbortController();setFetching(true);
-    void (allPages?loadAllPages(api,path!,controller.signal):api<T>(path!,{signal:controller.signal}))
-      .then(data=>{if(!controller.signal.aborted)setResult({base,key,data:data as T});})
-      .catch(error=>{if(!controller.signal.aborted)setResult(previous=>({base,key,data:financial&&previous?.base===base?previous.data:undefined,error:error instanceof Error?error.message:'Không tải được dữ liệu.'}));})
-      .finally(()=>{if(!controller.signal.aborted)setFetching(false);});
-    return()=>controller.abort();
-  },[api,enabled,path,allPages,key,base,financial]));
-  const current=enabled&&result?.base===base&&(financial||result.key===key)?result:undefined;
-  return {data:current?.data,error:current?.error,loading:enabled&&!current?.data&&!current?.error,
-    refreshing:enabled&&financial&&fetching,enabled,reload};
+export function useStudentQuery<T>(path: string | null, allPages = false) {
+  const { api, status, identity } = useSession(), client = useStudentQueries();
+  const enabled = status === 'authenticated' && !identity?.mustChangePassword && path !== null;
+  const key = JSON.stringify([path, allPages]);
+  const subscribe = useCallback((listener: () => void) => client.subscribe(key, listener), [client, key]);
+  const getSnapshot = useCallback(() => client.getSnapshot<T>(key), [client, key]);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useFocusEffect(useCallback(() => {
+    if (!enabled || !path) return;
+    const release = client.retain(key);
+    void client.fetch<T>(key, path, signal => allPages ? loadAllPages(api, path, signal) as Promise<T> : api<T>(path, { signal }));
+    return release;
+  }, [api, client, enabled, key, path, allPages, snapshot.revision]));
+  const reload = useCallback(() => { if (enabled) client.invalidateKey(key); }, [client, key, enabled]);
+  const current = enabled ? snapshot : undefined, hasData = current?.data !== undefined;
+  return {
+    data: current?.data, error: hasData ? undefined : current?.error,
+    refreshError: hasData ? current?.error : undefined,
+    fetching: enabled && snapshot.fetching, refreshing: enabled && snapshot.fetching,
+    loading: enabled && !hasData && !current?.error, updatedAt: current?.updatedAt ?? 0,
+    enabled, reload,
+  };
 }

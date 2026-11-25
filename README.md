@@ -4,7 +4,7 @@ React Native, TypeScript và Expo. Ứng dụng dùng API thật qua Gateway, g�
 
 Màn hình xem trước, nút khám phá không đăng nhập và hướng dẫn thẻ test trong giao diện đã được gỡ. Bộ kiểm thử được giữ trong `tests/`, không phải giao diện người dùng và không đóng gói thành chức năng app.
 
-Bản cài nội bộ đã tạo ngày 12/11/2026: [APK Android 64-bit, khoảng 28,7 MB](artifacts/LanguageCenter-1.0.0-sandbox-arm64-20261112103722.apk). Chữ ký hợp lệ, manifest `debuggable=false`, đã kiểm URL HTTPS và scan secret. Xem [manifest và SHA-256](artifacts/latest-android.json). Chưa có thiết bị kết nối để nghiệm thu cài/chạy native; backend và ngrok phải còn hoạt động khi dùng bản cài này.
+Bản cài nội bộ mới: **1.1.0 (versionCode 2)**, [APK Android ARM64 ~28,8 MB](artifacts/LanguageCenter-1.1.0-sandbox-arm64-20261115014613.apk). Đã xác minh chữ ký khớp bản 1.0.0 trước, không debuggable, phiên bản và HTTPS API nhúng đúng, không đóng gói endpoint/dữ liệu giả lập. Xem [manifest/SHA-256](artifacts/latest-android.json) và [báo cáo xác minh](artifacts/latest-android-verification.json). Chưa có thiết bị kết nối để nghiệm thu native. Gateway/ngrok hiện chưa hoạt động, cần bật lại trước khi đăng nhập.
 
 ## Chạy phát triển
 
@@ -94,3 +94,25 @@ Nếu mở Expo web tại `http://localhost:8085`, Gateway cần cho phép đún
 - [Kết quả giai đoạn 10](../language-center-backend/language-center-backend/docs/student-app/phase-10-completion.md)
 
 Không reset database để nâng cấp app. Dữ liệu demo, test fixture và khóa thử nghiệm của các bộ kiểm chứng nằm ngoài luồng runtime của bản bàn giao.
+
+## Cập nhật trải nghiệm M1–M3 (15/11/2026)
+
+Giữ năm tab; chuẩn hóa nút, bộ chọn, trạng thái và bảng lọc. Trang chủ ưu tiên buổi học tiếp theo, lịch có thanh ngày/chuyển tuần và ba chế độ Ngày–Tuần–Lưới giờ. Kéo để cập nhật ở Trang chủ, Lịch học và chi tiết buổi. Quy tắc học phí/VNPAY và API giữ nguyên.
+
+Kế hoạch và tiêu chí nghiệm thu: `../language-center-backend/language-center-backend/docs/student-app/mobile-ux-m1-m3.md`. Chạy `npm run typecheck` và `npm test`. Cần mở lại Metro để xem code mới; APK đã cài trước đây cần build/cài lại để nhận cập nhật. M4–M8 vẫn là các giai đoạn tiếp theo.
+
+## Cập nhật M4–M6
+
+Học tập tập trung theo từng lớp; học phí tách khoản cần đóng, phiếu thu và giao dịch online; thông báo mở trực tiếp nội dung; hỗ trợ giữ ngữ cảnh lớp/buổi/hồ sơ/khoản thu. Cá nhân và cài đặt được thu gọn. Xem `../language-center-backend/language-center-backend/docs/student-app/mobile-ux-m4-m6.md` để biết phạm vi và kết quả kiểm tra. APK cũ cần build/cài lại.
+
+## M7–M8: hiệu năng và bản cài 1.1.0
+
+Cache RAM riêng theo tài khoản, gộp truy vấn trùng, giữ thông tin đã tải kèm thời gian khi mạng lỗi, loại dữ liệu bị từ chối quyền và giữ bản nháp khi xác thực lại phiên. Học phí/điểm/điều kiện thanh toán tiếp tục kiểm tra mới; không có đăng nhập hoặc thanh toán offline. Luồng lớp → điểm → lớp → chuyên cần → lớp giảm GET cùng lớp từ 5 xuống 1 trong kiểm thử tổng hợp.
+
+TypeScript, 108 tests, 69 tình huống UI/hồi quy và build Android đã đạt. M8 còn nghiệm thu trên thiết bị thật, push và VNPAY thật qua app sau khi backend/ngrok hoạt động. Kế hoạch, kết quả và hướng dẫn cài: `../language-center-backend/language-center-backend/docs/student-app/mobile-ux-m7-m8.md`.
+
+APK này dùng `https://subsystem-handwork-subscript.ngrok-free.dev/api/v1`. URL LAN trong `.env.local` dành cho Expo không thay đổi APK đã build; đổi domain HTTPS thì cần build lại. Build lặp lại bằng `npm run check:release` rồi `npm run build:android:local` với EXPO_PUBLIC_API_BASE_URL HTTPS trong môi trường tiến trình.
+
+## Phân loại khóa học G5–G6
+
+Website/CMS và mobile dùng chương trình/đối tượng chuẩn từ backend. Không tự suy đoán tuổi hoặc trình độ. Mã mobile đã cập nhật nhưng chưa build APK mới. [Bàn giao và giới hạn kiểm thử](docs/course-classification/g5-g6-handoff.md).

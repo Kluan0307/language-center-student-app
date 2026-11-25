@@ -1,5 +1,20 @@
-﻿import {useState} from 'react';
-import {Modal,Pressable,ScrollView,Text,View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {Button,textStyles} from './ui';
-export function Choice({title,value,options,onChange,disabled=false}:{title:string;value:string;options:{value:string;label:string}[];onChange:(value:string)=>void;disabled?:boolean}){const [open,setOpen]=useState(false);return <><Button secondary title={title+': '+(options.find(o=>o.value===value)?.label??'Chọn')} disabled={disabled} onPress={()=>setOpen(true)}/><Modal visible={open&&!disabled} transparent animationType="slide" onRequestClose={()=>setOpen(false)}><View style={{flex:1,justifyContent:'flex-end'}}><Pressable accessibilityLabel="Đóng lựa chọn" onPress={()=>setOpen(false)} style={{position:'absolute',top:0,bottom:0,left:0,right:0,backgroundColor:'#0006'}}/><SafeAreaView edges={['bottom']} style={{backgroundColor:'#fff',borderTopLeftRadius:20,borderTopRightRadius:20,padding:20,maxHeight:'75%',gap:12}}><Text style={textStyles.section}>{title}</Text><ScrollView>{options.map(o=><Pressable key={o.value} accessibilityRole="radio" accessibilityState={{selected:value===o.value}} onPress={()=>{onChange(o.value);setOpen(false);}} style={{minHeight:50,padding:14,borderRadius:10,backgroundColor:value===o.value?'#EFF6FF':'#fff'}}><Text style={textStyles.label}>{o.label}{value===o.value?' ✓':''}</Text></Pressable>)}</ScrollView><Button secondary title="Đóng" onPress={()=>setOpen(false)}/></SafeAreaView></View></Modal></>;}
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Button, textStyles } from './ui';
+import { BottomSheet } from './BottomSheet';
+import { theme as t } from '../theme/tokens';
+
+export function Choice({ title, value, options, onChange, disabled = false }: {
+  title: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return <><Button secondary title={title + ': ' + (options.find(o => o.value === value)?.label ?? 'Chọn')} disabled={disabled} onPress={() => setOpen(true)} />
+    <BottomSheet visible={open && !disabled} title={title} onClose={() => setOpen(false)}>
+      {options.map(option => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: value === option.value }} aria-checked={value === option.value}
+        onPress={() => { onChange(option.value); setOpen(false); }} style={({ pressed }) => ({ minHeight: t.touchTarget, padding: 14, borderRadius: t.radius.md, backgroundColor: value === option.value || pressed ? t.colors.primaryLight : t.colors.surface })}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Text style={[textStyles.label, { flex: 1 }]}>{option.label}</Text>
+          {value === option.value && <Ionicons name="checkmark" size={22} color={t.colors.primary} />}</View>
+      </Pressable>)}
+    </BottomSheet></>;
+}

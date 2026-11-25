@@ -38,9 +38,12 @@ export async function resolvePayment(api:PaymentApi,intent:CheckoutIntent,recove
 }
 
 export function paymentStage(order:Order,returned:boolean){
+  if(order.state==='SUCCEEDED'&&!order.receiptId)return {title:'Đã ghi nhận thanh toán',description:'Khoản tiền đã được trung tâm xác nhận. Phiếu thu đang được cập nhật; bạn có thể kiểm tra lại.',action:'check'};
   if(order.state==='SUCCEEDED')return {title:'Thanh toán thành công',description:'Trung tâm đã ghi nhận khoản tiền và tạo phiếu thu.',action:'receipt'};
   if(order.reviewRequired||order.state==='REVIEW_REQUIRED')return {title:'Giao dịch đang được kiểm tra',description:'Vui lòng không thanh toán lại nếu ngân hàng đã trừ tiền.',action:'support'};
   if(order.state==='FAILED')return {title:'Thanh toán chưa thành công',description:'Ngân hàng báo giao dịch không thành công. Kiểm tra khoản học phí trước khi thử lại.',action:'tuition'};
   if(order.state==='EXPIRED')return {title:'Phiên thanh toán đã hết hạn',description:'Nếu chưa thanh toán, bạn có thể kiểm tra học phí để tạo phiên mới. Nếu đã bị trừ tiền, hãy liên hệ trung tâm.',action:'tuition'};
+  if(order.state==='CREATED')return {title:'Đang khởi tạo thanh toán',description:'Ứng dụng đang kiểm tra phiên thanh toán. Vui lòng chờ.',action:'check'};
+  if(order.state!=='PENDING')return {title:'Cần kiểm tra trạng thái giao dịch',description:'Liên hệ trung tâm nếu tài khoản ngân hàng đã bị trừ tiền.',action:'support'};
   return returned?{title:'Đang kiểm tra kết quả',description:'Chưa nhận được xác nhận từ trung tâm. Việc quay lại app không có nghĩa giao dịch đã thành công.',action:'check'}:{title:'Phiên thanh toán chưa hoàn tất',description:'Nếu chưa thanh toán, bạn có thể tiếp tục phiên còn hiệu lực này.',action:'continue'};
 }

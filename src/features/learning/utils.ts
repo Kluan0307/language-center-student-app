@@ -152,6 +152,35 @@ export function safeReturnTo(value: unknown): string | null {
   if (/^\/documents\?enrollmentId=[1-9]\d*$/.test(value)) return value;
   if (/^\/(tuition\?enrollmentId|receipts\?tuitionId)=[1-9]\d*$/.test(value)) return value;
   if (/^\/support\?category=PAYMENT&resourceType=(TUITION|RECEIPT)&resourceId=[1-9]\d*$/.test(value)) return value;
+  if (value.startsWith('/support?')) {
+    const p = new URLSearchParams(value.slice(value.indexOf('?') + 1));
+    const category = p.get('category') ?? 'OTHER', type = p.get('resourceType');
+    if (!['PROFILE','GRADE','ATTENDANCE','PAYMENT','LEAVE','MAKEUP','OTHER'].includes(category)) return null;
+    const clean = new URLSearchParams({ category });
+    if (type) {
+      if (!['PROFILE','ENROLLMENT','SESSION','TUITION','RECEIPT','PAYMENT_ORDER'].includes(type)) return null;
+      if (type === 'PAYMENT_ORDER') {
+        const key = p.get('resourceKey');
+        if (!key || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(key) || p.has('resourceId')) return null;
+        clean.set('resourceKey', key);
+      } else {
+        const id = validId(p.get('resourceId')); if (!id || p.has('resourceKey')) return null;
+        clean.set('resourceId', id);
+      }
+      clean.set('resourceType', type);
+    } else if (p.has('resourceId') || p.has('resourceKey')) return null;
+    return '/support?' + clean.toString();
+  }
+  if (value.startsWith('/payment-orders?')) {
+    const id = validId(new URLSearchParams(value.slice(value.indexOf('?') + 1)).get('tuitionId'));
+    return id ? '/payment-orders?tuitionId=' + id : null;
+  }
+  if (value.startsWith('/tuition?')) {
+    const p = new URLSearchParams(value.slice(value.indexOf('?') + 1)), clean = new URLSearchParams();
+    if (p.has('enrollmentId')) { const id = validId(p.get('enrollmentId')); if (!id) return null; clean.set('enrollmentId', id); }
+    if (p.get('tab') === 'history' || p.get('tab') === 'due') clean.set('tab', p.get('tab')!);
+    return clean.size ? '/tuition?' + clean.toString() : '/tuition';
+  }
   if (value.startsWith("/schedule?")) {
     const params = new URLSearchParams(value.slice(value.indexOf("?") + 1));
     const state = scheduleParams({

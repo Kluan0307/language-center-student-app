@@ -1,7 +1,7 @@
 ﻿import { safeReturnTo } from "../features/learning/utils";
 import { useState, useRef } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { KeyboardAvoidingView, Platform } from "react-native";
+
 import { useSession } from "../providers/SessionProvider";
 import { Screen, Heading, Card, Button, StateView } from "../components/ui";
 import { Field, ErrorNotice, passwordError } from "../features/account/fields";
@@ -66,10 +66,7 @@ export default function ChangePassword() {
     }
   }
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <>
       <Screen>
         <Heading
           title={
@@ -124,6 +121,6 @@ export default function ChangePassword() {
           />
         </Card>
       </Screen>
-    </KeyboardAvoidingView>
+    </>
   );
 }

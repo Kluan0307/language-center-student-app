@@ -14,6 +14,11 @@ function run(command,args,options={}){return new Promise((resolve,reject)=>{
  const settings={'org.gradle.jvmargs':'-Xmx1536m -XX:MaxMetaspaceSize=512m -XX:ActiveProcessorCount=2 -Dfile.encoding=UTF-8','org.gradle.workers.max':'1','org.gradle.parallel':'false','kotlin.compiler.execution.strategy':'in-process','EX_DEV_CLIENT_NETWORK_INSPECTOR':'false'};
  for(const [key,value] of Object.entries(settings)){const pattern=new RegExp('^'+key.replaceAll('.','\\.')+'=.*$','m');text=pattern.test(text)?text.replace(pattern,()=>key+'='+value):text+'\n'+key+'='+value+'\n';}fs.writeFileSync(props,text);
  const appGradle=path.join(root,'android/app/build.gradle');let gradle=fs.readFileSync(appGradle,'utf8');
+ const versionCode=config.android?.versionCode??1;
+ if(!Number.isSafeInteger(versionCode)||versionCode<1||!/^\d+\.\d+\.\d+$/.test(config.version))throw Error('Invalid application version.');
+ gradle=gradle.replace(/versionCode\s+\d+/, 'versionCode '+versionCode).replace(/versionName\s+"[^"]+"/, 'versionName "'+config.version+'"').replace(/applicationId\s+['"][^'"]+['"]/, "applicationId '"+checked.packageName+"'");
+ fs.writeFileSync(appGradle,gradle);
+
  if(!gradle.includes('// LC Windows object path limit'))gradle+='\n// LC Windows object path limit\nandroid { defaultConfig { externalNativeBuild { cmake { arguments "-DCMAKE_OBJECT_PATH_MAX=240" } } } }\n';
  gradle=gradle.replace(/-DCMAKE_OBJECT_PATH_MAX=\d+/g,'-DCMAKE_OBJECT_PATH_MAX=240');fs.writeFileSync(appGradle,gradle);
  const poolArgs='"-DCMAKE_JOB_POOLS=lc_compile=1;lc_link=1", "-DCMAKE_JOB_POOL_COMPILE=lc_compile", "-DCMAKE_JOB_POOL_LINK=lc_link"';
@@ -41,6 +46,6 @@ function run(command,args,options={}){return new Promise((resolve,reject)=>{
  const source=path.join(root,'android/app/build/outputs/apk/release/app-release.apk');if(!fs.existsSync(source))throw Error('Gradle did not produce the expected APK.');
  const dir=path.join(root,'artifacts');fs.mkdirSync(dir,{recursive:true});const stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14);
  const file='LanguageCenter-'+config.version+'-sandbox-arm64-'+stamp+'.apk';fs.copyFileSync(source,path.join(dir,file));
- const buffer=fs.readFileSync(path.join(dir,file));const info={file,version:config.version,apiBaseUrl:checked.apiBaseUrl,sha256:crypto.createHash('sha256').update(buffer).digest('hex'),bytes:buffer.length,architecture:'arm64-v8a',environment:'VNPAY sandbox',signing:'local Android project signing; generated template uses debug keystore, internal distribution only',deviceAcceptance:'PENDING'};
+ const buffer=fs.readFileSync(path.join(dir,file));const info={file,version:config.version,versionCode,packageName:checked.packageName,createdAt:new Date().toISOString(),apiBaseUrl:checked.apiBaseUrl,sha256:crypto.createHash('sha256').update(buffer).digest('hex'),bytes:buffer.length,architecture:'arm64-v8a',environment:'VNPAY sandbox',signing:'local Android project signing; generated template uses debug keystore, internal distribution only',deviceAcceptance:'PENDING'};
  fs.writeFileSync(path.join(dir,'latest-android.json'),JSON.stringify(info,null,2));console.log('APK ready: '+path.join(dir,file));
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

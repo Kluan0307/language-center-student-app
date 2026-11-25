@@ -37,8 +37,8 @@ test('account/focus changes stop recovery before any payment is posted',async()=
 });
 test('returning from browser never changes pending into financial success',()=>{
  assert.equal(x.paymentStage(order,false).action,'continue');assert.equal(x.paymentStage(order,true).action,'check');
- assert.equal(x.paymentStage({...order,state:'SUCCEEDED'},true).action,'receipt');
- assert.equal(x.paymentStage({...order,state:'SUCCEEDED',reviewRequired:true},true).action,'receipt');
+ assert.equal(x.paymentStage({...order,state:'SUCCEEDED',receiptId:12},true).action,'receipt');
+ assert.equal(x.paymentStage({...order,state:'SUCCEEDED',receiptId:12,reviewRequired:true},true).action,'receipt');
  assert.equal(x.paymentStage({...order,reviewRequired:true},false).action,'support');
 });
 test('failure, expiry and unallocated money have distinct next actions',()=>{

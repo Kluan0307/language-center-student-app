@@ -39,7 +39,7 @@ export function SessionProvider({ children }: React.PropsWithChildren) {
     void manager.restore();
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active" && manager.getSnapshot().status === "authenticated")
-        void manager.restore();
+        void manager.revalidate();
     });
     return () => sub.remove();
   }, [manager]);
@@ -53,7 +53,7 @@ export function SessionProvider({ children }: React.PropsWithChildren) {
         login: manager.login,
         logoutAll: async()=>{const account=manager.getSnapshot().identity?.accountId;if(account)try{await disableDevice(manager.api,account);}catch{}return manager.logoutAll();},
         retry: () => {
-          void manager.restore();
+          void (manager.getSnapshot().status === 'authenticated' ? manager.revalidate() : manager.restore());
         },
         clearLocalSession: manager.clearLocalSession,
       }}

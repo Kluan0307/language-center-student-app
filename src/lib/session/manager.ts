@@ -79,6 +79,29 @@ export function createSessionManager(options: {
       });
     }
   }
+  let verifying: Promise<void> | undefined;
+  function revalidate(): Promise<void> {
+    if (verifying) return verifying;
+    if (state.status !== 'authenticated' || !token) return restore();
+    const attempt = generation, candidate = token, account = state.identity?.accountId;
+    const task = (async () => {
+      try {
+        const me = await api<unknown>('/auth/me');
+        if (attempt !== generation || candidate !== token) return;
+        if (!isStudentIdentity(me) || me.accountId !== account) { await clearLocalSession(); return; }
+        set({ status: 'authenticated', identity: me });
+      } catch (error) {
+        if (attempt !== generation || candidate !== token) return;
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          await clearLocalSession(); return;
+        }
+        set({ ...state, message: 'Chưa kết nối lại máy chủ. Bạn có thể xem thông tin đã tải và thử cập nhật khi có mạng.' });
+      }
+    })().finally(() => { if (verifying === task) verifying = undefined; });
+    verifying = task;
+    return task;
+  }
+
   async function login(username: string, password: string) {
     const attempt = ++generation;
     if (state.status === "authenticated")
@@ -151,6 +174,7 @@ export function createSessionManager(options: {
     },
     api,
     restore,
+    revalidate,
     login,
     logoutAll,
     clearLocalSession,

@@ -4,7 +4,9 @@
   phone: string;
   address: string | null;
 }
+export interface CourseClassification {programCode:string|null;programName:string|null;audiences:{code:string;name:string}[];complete:boolean}
 export interface Enrollment {
+  classification?:CourseClassification|null;
   id: number;
   classId: number;
   classCode: string;
