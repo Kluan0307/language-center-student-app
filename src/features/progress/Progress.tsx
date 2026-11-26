@@ -1,3 +1,4 @@
+import GradingPublishedResult from "./GradingPublishedResult";
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
@@ -10,7 +11,7 @@ import { displayDate, validId } from '../learning/utils';
 import { supportLink } from '../support/context';
 import { scoreLabel, percentLabel } from './utils';
 export type Grade = { examId: number; examName: string; examType: string; examDate: string; maxScore: number; weight: number; revision: number; publishedAt: string; score: number | null; status: 'GRADED' | 'NOT_GRADED'; studentComment: string | null };
-export type Outcome = { state: 'PENDING' | 'CONFIRMED' | 'UPDATING'; outcome: 'PASS' | 'FAIL' | null; revision: number | null; confirmedAt: string | null };
+export type Outcome = { state: 'PENDING' | 'CONFIRMED' | 'UPDATING'; outcome: 'PASS' | 'FAIL' | 'ASSESSED' | null; revision: number | null; confirmedAt: string | null };
 export type Attendance = { sessionId: number | null; attendanceId: number | null; date: string; startTime: string | null; endTime: string | null; status: 'PRESENT' | 'ABSENT' | 'LATE' | 'NOT_RECORDED'; hasPermission: boolean; source: 'VERIFIED' | 'LEGACY_UNVERIFIED' };
 export type Summary = { eligibleCompleted: number; present: number; late: number; absent: number; notRecorded: number; legacyUnverified: number; coverageComplete: boolean; attendancePercent: number | null };
 type Page<T> = { content: T[]; page: number; size: number; totalElements: number; totalPages: number; summary?: Summary };
@@ -22,13 +23,15 @@ function Content({ mode }: { mode: 'grades' | 'attendance' }) {
   const rows = useStudentQuery<Page<Grade | Attendance>>(key ? `/${mode === 'grades' ? 'teaching' : 'academic'}/student/me/enrollments/${key}/${mode}?page=${page}&size=20` : null);
   const outcome = useStudentQuery<Outcome>(key && mode === 'grades' ? `/teaching/student/me/enrollments/${key}/final-result` : null);
   const data = rows.data;
-  return <Screen onRefresh={key ? () => { rows.reload(); outcome.reload(); } : undefined} refreshing={rows.fetching || outcome.fetching}>
+  const [schemePublished,setSchemePublished]=useState(false),[gradingRevision,setGradingRevision]=useState(0);
+  return <Screen onRefresh={key ? () => { rows.reload(); outcome.reload(); setGradingRevision(v=>v+1); } : undefined} refreshing={rows.fetching || outcome.fetching}>
     {!key ? <StateView title="Đường dẫn không hợp lệ" description="Vui lòng chọn lại lớp học." /> : <>
       <ClassContext id={key} />
-      {mode === 'grades' && <Card><Heading title="Kết quả cuối khóa" />
+      {mode === 'grades' && <GradingPublishedResult enrollmentId={key} onPublishedChange={setSchemePublished} refreshRevision={gradingRevision} />}
+      {mode === 'grades' && !schemePublished && <Card><Heading title="Kết quả cuối khóa" />
         {outcome.loading ? <Text style={textStyles.body}>Đang kiểm tra kết quả…</Text>
           : outcome.error ? <InlineNotice title="Chưa tải được kết quả" action={{ title: 'Thử lại', onPress: outcome.reload }} />
-          : outcome.data && <><Badge label={outcome.data.state === 'CONFIRMED' && outcome.data.outcome ? outcome.data.outcome === 'PASS' ? 'Đạt' : 'Chưa đạt' : outcome.data.state === 'UPDATING' ? 'Đang cập nhật kết quả' : 'Chưa xác nhận kết quả'}
+          : outcome.data && <><Badge label={outcome.data.state === 'CONFIRMED' && outcome.data.outcome ? outcome.data.outcome === 'ASSESSED' ? 'Đã hoàn thành đánh giá' : outcome.data.outcome === 'PASS' ? 'Đạt' : 'Chưa đạt' : outcome.data.state === 'UPDATING' ? 'Đang cập nhật kết quả' : 'Chưa xác nhận kết quả'}
             tone={outcome.data.state === 'CONFIRMED' && outcome.data.outcome === 'PASS' ? 'success' : 'info'} />
             {outcome.data.confirmedAt && <Text style={textStyles.body}>Xác nhận ngày {displayDate(outcome.data.confirmedAt.slice(0, 10))}</Text>}</>}
       </Card>}
@@ -40,7 +43,7 @@ function Content({ mode }: { mode: 'grades' | 'attendance' }) {
             <Text style={textStyles.body}>{data.summary.eligibleCompleted} buổi đã diễn ra đủ điều kiện.</Text>
             {(!data.summary.coverageComplete || data.summary.legacyUnverified > 0) && <InlineNotice tone="warning" title="Một số dữ liệu đang được xác minh" description="Tỷ lệ chỉ hiển thị khi dữ liệu đủ điều kiện." />}
           </Card>}
-          {!data.content.length ? <StateView title={mode === 'grades' ? 'Chưa có điểm được công bố' : 'Chưa có bản ghi chuyên cần'} description={mode === 'grades' ? 'Điểm sẽ hiển thị sau khi trung tâm công bố.' : 'Chưa cập nhật điểm danh không có nghĩa là vắng.'} />
+          {!data.content.length && !schemePublished ? <StateView title={mode === 'grades' ? 'Chưa có điểm được công bố' : 'Chưa có bản ghi chuyên cần'} description={mode === 'grades' ? 'Điểm sẽ hiển thị sau khi trung tâm công bố.' : 'Chưa cập nhật điểm danh không có nghĩa là vắng.'} />
             : data.content.map((item, index) => mode === 'grades' ? <GradeCard key={(item as Grade).examId} grade={item as Grade} /> : <AttendanceCard key={`${(item as Attendance).sessionId}-${index}`} attendance={item as Attendance} />)}
           <Pagination page={page} totalPages={data.totalPages} onChange={setPage} />
           {mode === 'attendance' && <Disclosure title="Cách tính chuyên cần"><Text style={textStyles.body}>Đi muộn được tính là tham dự. Vắng có phép vẫn là vắng. Buổi đã hủy, chưa diễn ra và bản ghi cũ chưa xác minh không dùng để tính tỷ lệ.</Text></Disclosure>}
